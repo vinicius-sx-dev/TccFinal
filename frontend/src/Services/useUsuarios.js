@@ -18,24 +18,46 @@ const useUsuarios = create((set, get) => ({
 
     try {
       const response = await api.put(`${baseUrl}/perfil`, {
-          "nome": nome,
-          "curso": curso
-        }
+        "nome": nome,
+        "curso": curso
+      }
       );
-
-      console.log("Status da Resposta:", response.status);
-
 
       const answer = await response;
 
-      if(answer){
+      if (answer) {
         return true;
       }
 
     } catch (error) {
-      console.error('Erro ao consultar catálogo:', error);
+      console.error('Erro ao alterar usuário:', error);
     }
   },
+
+
+  enviaAvatar: async (foto) => {
+    try {
+      const formData = new FormData();
+
+      formData.append('foto', {
+        uri: foto.uri,
+        type: foto.mimeType || 'image/jpeg',
+        name: foto.fileName || 'avatar.jpg',
+      });
+
+      const response = await api.post(`${baseUrl}/avatar`, formData);
+
+      if (response.data) {
+        return true;
+      }
+    } catch (error) {
+      console.error('Erro ao enviar avatar:', error);
+    }
+  }
+
+
+
+
 
 }));
 

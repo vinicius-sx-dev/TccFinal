@@ -6,6 +6,8 @@ import { Text, View, Image, TouchableOpacity, TextInput, ActivityIndicator } fro
 
 import styles from "./styles";
 
+import * as ImagePicker from "expo-image-picker";
+
 import autenticacao from "../../Services/autenticacao";
 import useUsuarios from "../../Services/useUsuarios";
 
@@ -23,6 +25,7 @@ export default function BackDoor({ navigation }) {
   const foto = autenticacao((state) => state.foto);
 
   const alteraUsuario = useUsuarios((state) => state.alteraUsuario);
+  const enviaAvatar = useUsuarios((state) => state.enviaAvatar);
   const mostraMenu = navegacaoMenu((state) => state.mostraMenu);
   const iniciaMenu = navegacaoMenu((state) => state.iniciaMenu);
 
@@ -79,7 +82,7 @@ export default function BackDoor({ navigation }) {
   }, [consultarUsuario])
 
   const setaUsuario = () => {
-    if(usuario){
+    if (usuario) {
       setNome(usuario.nome);
       setCurso(usuario.curso);
       setCarrega(true)
@@ -87,19 +90,167 @@ export default function BackDoor({ navigation }) {
   }
 
   useEffect(() => {
-    if(usuario != null){
+    if (usuario != null) {
       setaUsuario();
     }
-    
+
   }, [usuario])
 
+  const [
+    enviandoArquivo,
+    setEnviandoArquivo
+  ] = useState(false);
 
 
+  const selecionaMidias = async () => {
+
+    try {
+
+      const permissao =
+        await ImagePicker
+          .requestMediaLibraryPermissionsAsync();
+
+
+      if (!permissao.granted) {
+
+        Toast.show({
+
+          type: "error",
+
+          text1: "Permissão negada",
+
+          text2:
+            "Permita o acesso à galeria.",
+
+          visibilityTime: 3000
+
+        });
+
+        return;
+      }
+
+
+      const resultado =
+        await ImagePicker
+          .launchImageLibraryAsync({
+
+            mediaTypes: [
+              "images",
+            ],
+
+            allowsMultipleSelection: false,
+
+            quality: 0.8
+
+          });
+
+
+      if (resultado.canceled) {
+        return;
+      }
+
+
+      const arquivos =
+        resultado.assets;
+
+
+      if (
+        !arquivos ||
+        arquivos.length === 0
+      ) {
+        return;
+      }
+
+
+      setEnviandoArquivo(true);
+
+      let sucesso = true;
+
+
+      for (
+        const arquivo of arquivos
+      ) {
+
+        const enviado =
+          await enviaAvatar(
+            arquivo
+          );
+
+
+        if (!enviado) {
+
+          sucesso = false;
+
+          break;
+
+        }
+
+      }
+
+
+      if (sucesso) {
+        consultarUsuario()
+
+        Toast.show({
+
+          type: "success",
+
+          text1:
+            "Mídias enviadas com sucesso!",
+
+          text2:
+            `${arquivos.length} arquivo(s) enviado(s).`,
+
+          visibilityTime: 3000
+
+        });
+
+      } else {
+
+        Toast.show({
+
+          type: "error",
+
+          text1:
+            "Erro ao enviar mídia",
+
+          visibilityTime: 3000
+
+        });
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Erro ao selecionar mídias:",
+        error
+      );
+
+
+      Toast.show({
+
+        type: "error",
+
+        text1:
+          "Erro ao selecionar mídia",
+
+        visibilityTime: 3000
+
+      });
+
+    } finally {
+
+      setEnviandoArquivo(false);
+
+    }
+
+  };
 
 
   return <>
 
-    {nome && curso && foto && carrega?
+    {nome && curso && foto && carrega ?
       <>
         <BotaoMenu />
         <Menu
@@ -118,10 +269,17 @@ export default function BackDoor({ navigation }) {
             {
               foto ?
                 <>
-                  <Image
-                    source={{ uri: foto }}
-                    style={styles.fotoPerfil}
-                  />
+                  <TouchableOpacity
+                  onPress={() => {
+                    selecionaMidias()
+                  }}
+                  >
+                    <Image
+                      source={{ uri: foto }}
+                      style={styles.fotoPerfil}
+                    />
+                  </TouchableOpacity>
+
                 </>
                 :
                 <>
@@ -180,11 +338,11 @@ export default function BackDoor({ navigation }) {
       </>
       :
       <>
-          <ActivityIndicator
-            size="large"
-            color="#00000"
-            style={styles.loader}
-          />
+        <ActivityIndicator
+          size="large"
+          color="#00000"
+          style={styles.loader}
+        />
       </>
     }
     <>
